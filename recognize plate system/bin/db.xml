@@ -1,0 +1,126 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xmlns:context="http://www.springframework.org/schema/context" xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:jpa="http://www.springframework.org/schema/data/jpa" xmlns:aop="http://www.springframework.org/schema/aop"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+		http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-3.0.xsd
+		http://www.springframework.org/schema/data/jpa http://www.springframework.org/schema/data/jpa/spring-jpa-1.2.xsd 
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.0.xsd
+		http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd
+		http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.0.xsd"
+	default-autowire="byName">
+
+	<!-- Scans within the base package of the application for @Components to 
+		configure as beans -->
+	<context:component-scan base-package="org.platesystem">
+	</context:component-scan>
+	 
+	<!-- Lucene -->
+	<!--<bean id="placeholderConfig"
+		class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+		<property name="locations">
+			<list>
+				<value>classpath:db.properties</value>
+			</list>
+		</property>
+	</bean>-->
+     <!--Database connection pool configuration -->
+        <bean id="dataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource" destroy-method="close">
+           <property name="driverClass">
+                    <value>oracle.jdbc.driver.OracleDriver</value>
+           </property>
+           <property name="jdbcUrl">
+                        <value>jdbc:oracle:thin:@(DESCRIPTION =(ADDRESS = (PROTOCOL = TCP)(HOST = 172.20.10.4)(PORT = 1521))(CONNECT_DATA =(SERVER = DEDICATED)(ORACLE_SID=platesystem)))</value>
+           </property>
+            <property name="user">
+                    <value>system</value>
+            </property>
+            <property name="password">
+                     <value>lizenan</value>
+            </property>
+            <property name="initialPoolSize">
+                      <value>10</value>
+            </property>
+    </bean>
+
+	<!-- sessionFactory的配置 -->
+	<bean id="sessionFactory"
+		class="org.springframework.orm.hibernate3.annotation.AnnotationSessionFactoryBean"
+		autowire="byName">
+		<property name="dataSource" ref="dataSource"></property>
+		<property name="hibernateProperties">
+			<props>
+				<prop key="connection.characterEncoding">utf-8</prop>
+				<prop key="hibernate.dialect">
+					org.hibernate.dialect.Oracle10gDialect
+				</prop>
+				<prop key="hibernate.show_sql">true</prop>
+				<prop key="hibernate.jdbc.batch_size">20</prop>
+				<prop key="hibernate.jdbc.fetch_size">20</prop>
+				<!--<prop key="hibernate.current_session_context_class">thread</prop> -->
+				<prop key="show_sql">true</prop>
+				<!-- <prop key="hibernate.cache.provider_class">net.sf.ehcache.hibernate.EhCacheProvider</prop> -->
+				<prop key="hibernate.cache.use_second_level_cache">
+					true
+				</prop>
+				<!-- 如果开启, Hibernate将收集有助于性能调节的统计数据 -->
+				<prop key="hibernate.generate_statistics">true</prop>
+				<!-- 指定Hibernate在何时释放JDBC连接. 默认情况下,直到Session被显式关闭或被断开连接时,才会释放JDBC连接. 
+					对于应用程序服务器的JTA数据源, 你应当使用after_statement, 这样在每次JDBC调用后，都会主动的释放连接. 对于非JTA的连接, 
+					使用after_transaction在每个事务结束时释放连接是合理的. auto将为JTA和CMT事务策略选择after_statement, 
+					为JDBC事务策略选择after_transaction. -->
+				<prop key="hibernate.connection.release_mode">
+					auto
+				</prop>
+				<prop key="hibernate.autoReconnect">true</prop>
+				<prop key="hibernate.connection.autocommit">true</prop>
+				<prop key="hibernate.hbm2ddl.auto">false</prop>
+			</props>
+		</property>
+
+		<!-- 指定需要自动扫描实体类的包，配置以后将自动扫描这些包下面的实体并得到他们与表之间的映射关系 -->
+		<property name="packagesToScan">
+			<list>
+				<value>org.platesystem.beans</value>
+			</list>
+		</property>
+	</bean>
+
+	<!-- 为数据源配置事务管理器 -->
+	<bean id="txManager"
+		class="org.springframework.orm.hibernate3.HibernateTransactionManager">
+		<property name="sessionFactory" ref="sessionFactory" />
+	</bean>
+
+        <!--启动spring事务注解功能-->
+       <tx:annotation-driven transaction-manager="txManager"/> 
+
+<!--  <bean id="platedaoimpl" class="org.platesystem.dao.plateDaoImpl">  
+    <property name="sessionFactory" ref="sessionFactory"/>  
+</bean>  
+ -->
+	<!-- 配置事务通知 -->
+	<tx:advice id="txAdvice" transaction-manager="txManager">
+		<tx:attributes>
+			<tx:method name="save*" propagation="REQUIRED" isolation="READ_COMMITTED" />
+			<tx:method name="init*" propagation="REQUIRED" isolation="READ_COMMITTED" />
+			<tx:method name="update*" propagation="REQUIRED" isolation="READ_COMMITTED" />
+			<tx:method name="change*" propagation="REQUIRED" isolation="READ_COMMITTED" />
+			<tx:method name="create*" propagation="REQUIRED" isolation="READ_COMMITTED" />
+			<tx:method name="add*" propagation="REQUIRED" isolation="READ_COMMITTED" />
+			<tx:method name="remove*" propagation="REQUIRED" isolation="READ_COMMITTED" />
+			<tx:method name="del*" propagation="REQUIRED" isolation="READ_COMMITTED" />
+			<tx:method name="do*" propagation="REQUIRED" isolation="READ_COMMITTED" />
+			<tx:method name="import*" propagation="REQUIRED" isolation="READ_COMMITTED" />
+			<tx:method name="start*" propagation="REQUIRED" isolation="READ_COMMITTED" />
+			<tx:method name="complete*" propagation="REQUIRED" isolation="READ_COMMITTED" />
+			<tx:method name="set*" propagation="REQUIRED" isolation="READ_COMMITTED" />
+			<tx:method name="end*" propagation="REQUIRED" isolation="READ_COMMITTED" />
+			<tx:method name="back*" propagation="REQUIRED" isolation="READ_COMMITTED" />
+			<tx:method name="doGet*" propagation="REQUIRED" isolation="READ_COMMITTED" />
+			<tx:method name="*" propagation="REQUIRED" read-only="true" />
+		</tx:attributes>
+	</tx:advice>
+ 
+</beans>
